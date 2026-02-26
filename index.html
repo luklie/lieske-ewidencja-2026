@@ -1,413 +1,703 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ewidencja Czasu Pracy 2026</title>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
-        .controls { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s; }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-success { background: #27ae60; color: white; }
-        .btn-danger { background: #e74c3c; color: white; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .status { padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; }
-        .status-connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .status-disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .month-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .month-btn { padding: 8px 16px; background: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; border-radius: 20px; cursor: pointer; }
-        .month-btn.active { background: #3498db; color: white; }
-        table { width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-collapse: collapse; }
-        th, td { padding: 10px 6px; text-align: left; border-bottom: 1px solid #ecf0f1; font-size: 13px; }
-        th { background: #34495e; color: white; font-weight: 600; position: sticky; top: 0; z-index: 1; }
-        td:first-child { background: #e3f2fd; font-weight: 500; }
-        .time-input { padding: 6px; border: 2px solid #ddd; border-radius: 4px; width: 100%; font-size: 13px; }
-        .time-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
-        .status-urlop { background: #2980b9 !important; color: white !important; font-weight: 500; }
-        .status-start { background: #e74c3c !important; color: white !important; }
-        .status-complete { background: #27ae60 !important; color: white !important; }
-        .hours { font-weight: 600; text-align: center; }
-        .summary { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
-        .summary-total { font-size: 20px; font-weight: bold; color: #2c3e50; border-top: 2px solid #3498db; padding-top: 12px; }
-        
-        /* NOWE STYLE DLA MODALU HASŁA */
-        .password-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .password-modal.active { display: flex; align-items: center; justify-content: center; }
-        .password-box {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .password-box h3 { color: #e74c3c; margin-bottom: 20px; }
-        .password-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-            margin-bottom: 15px;
-            box-sizing: border-box;
-        }
-        .password-input:focus { border-color: #e74c3c; outline: none; }
-        .password-buttons { display: flex; gap: 10px; justify-content: center; }
-        .btn-password { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
-        .btn-confirm { background: #e74c3c; color: white; }
-        .btn-cancel { background: #95a5a6; color: white; }
-        @media (max-width: 900px) { .controls, .month-nav { flex-direction: column; } table { font-size: 11px; } th, td { padding: 6px 4px; } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ewidencja Czasu Pracy 2026</title>
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:#ffffff;
+      --ink:#2c3e50;
+      --ink-soft:#6b7a8d;
+      --primary:#3498db;
+      --success:#27ae60;
+      --danger:#e74c3c;
+      --muted:#ecf0f1;
+      --line:#e6eaee;
+      --pill:#ecf0f1;
+      --accent:#34495e;
+      --radius:12px;
+      --radius-sm:8px;
+      --shadow:0 6px 22px rgba(0,0,0,.08);
+      --shadow-sm:0 3px 12px rgba(0,0,0,.08);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Segoe UI, Tahoma, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+    }
+
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding:16px;
+      padding-bottom:88px; /* miejsce na sticky action bar */
+    }
+
+    h1{
+      margin:8px 0 18px;
+      text-align:center;
+      color:var(--accent);
+      font-size:clamp(20px, 2.6vw, 28px);
+      letter-spacing:.2px;
+    }
+
+    .status{
+      padding:10px 12px;
+      border-radius:10px;
+      font-weight:600;
+      margin-bottom:12px;
+      border:1px solid transparent;
+    }
+    .status-connected{background:#d4edda;color:#155724;border-color:#c3e6cb}
+    .status-disconnected{background:#f8d7da;color:#721c24;border-color:#f5c6cb}
+
+    .controls{
+      display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;
+    }
+
+    button{
+      border:0; border-radius:10px; padding:10px 14px; cursor:pointer;
+      font-weight:600; color:#fff; transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+      box-shadow:var(--shadow-sm);
+      touch-action:manipulation;
+    }
+    button:active{transform:translateY(1px)}
+    .btn-primary{background:var(--primary)}
+    .btn-success{background:var(--success)}
+    .btn-danger{background:var(--danger)}
+    .btn-ghost{background:#e9eef4;color:#233244}
+
+    .month-nav{
+      display:flex; gap:8px; margin:12px 0 14px; overflow-x:auto; padding-bottom:2px;
+      -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+    }
+    .month-btn{
+      white-space:nowrap; padding:8px 14px; border-radius:999px; background:var(--pill);
+      color:var(--ink); border:1px solid #d6dde6; font-weight:600; cursor:pointer;
+    }
+    .month-btn.active{background:var(--primary); color:#fff; border-color:transparent}
+
+    /* Desktop table */
+    table{
+      width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden;
+      box-shadow:var(--shadow); display:table;
+    }
+    thead th{
+      background:var(--accent); color:#fff; position:sticky; top:0; z-index:1; font-weight:700;
+      padding:10px 6px; font-size:13px;
+    }
+    td,th{border-bottom:1px solid var(--line)}
+    tbody td{padding:10px 6px; font-size:13px}
+    td:first-child{background:#e9f3ff; font-weight:700}
+    .hours{text-align:center; font-weight:700}
+
+    .time-input{
+      width:100%; padding:8px; border:2px solid #dfe6ee; border-radius:8px; font-size:14px; background:#fff;
+      outline:none; transition:border-color .18s ease, box-shadow .18s ease;
+    }
+    .time-input:focus{border-color:var(--primary); box-shadow:0 0 0 3px rgba(52,152,219,.12)}
+
+    .status-urlop{background:#2980b9 !important;color:#fff !important;font-weight:700}
+    .status-start{background:#e74c3c !important;color:#fff !important}
+    .status-complete{background:#27ae60 !important;color:#fff !important}
+
+    .summary{
+      background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:16px; margin-top:16px;
+    }
+    .summary-row{display:flex; justify-content:space-between; margin:6px 0; color:var(--ink-soft)}
+    .summary-total{display:flex; justify-content:space-between; margin-top:10px; padding-top:12px;
+      border-top:2px solid var(--primary); font-size:18px; font-weight:800; color:var(--accent)}
+
+    /* Sticky action bar on mobile */
+    .action-bar{
+      position:fixed; left:0; right:0; bottom:0; background:rgba(255,255,255,.92); backdrop-filter:saturate(120%) blur(6px);
+      display:flex; gap:10px; padding:10px; box-shadow:0 -8px 22px rgba(0,0,0,.12);
+      z-index:50;
+    }
+    .action-bar .btn{flex:1; padding:12px 10px; border-radius:12px; font-size:16px}
+
+    /* ------- Mobile layout (cards) ------- */
+    @media (max-width: 768px){
+      table{display:none} /* chowamy tabelę */
+
+      .day-list{display:grid; gap:12px}
+      .day-card{
+        background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:12px;
+        display:grid; gap:10px;
+      }
+      .day-head{display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid var(--line); padding-bottom:6px}
+      .day-head .date{font-weight:800}
+      .day-head .weekday{color:var(--ink-soft); font-weight:600}
+
+      .work-group{display:grid; gap:8px; background:#f8fafc; border:1px solid #e6ecf3; border-radius:10px; padding:8px}
+      .work-title{font-weight:800; color:#233244; letter-spacing:.2px}
+      .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+      .cell{display:grid; gap:6px}
+      .cell label{font-size:12px; color:#607089; font-weight:700}
+      .sum-row{display:flex; justify-content:flex-end; font-weight:800}
+      .urlop-note{font-size:12px; color:#0b3d5c; font-weight:700}
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ewidencja Czasu Pracy 2026</h1>
-        <div id="status" class="status status-disconnected">Ładowanie synchronizacji...</div>
-        <div class="controls">
-            <button class="btn-success" onclick="exportCSV()">Eksport CSV</button>
-            <button class="btn-danger" onclick="showPasswordModal()" id="clearBtn">Wyczyść dane</button>
-        </div>
-        <div class="month-nav" id="monthNav"></div>
-        <table id="workTable">
-            <thead id="tableHead"></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-        <div class="summary" id="summary"></div>
+  <div class="container">
+    <h1>Ewidencja Czasu Pracy 2026</h1>
+    <div id="status" class="status status-disconnected">Ładowanie synchronizacji...</div>
+
+    <!-- Desktop controls -->
+    <div class="controls" id="topControls" aria-label="Akcje">
+      <button class="btn-success" id="exportBtn">Eksport CSV</button>
+      <button class="btn-danger" id="clearBtn">Wyczyść dane</button>
     </div>
 
-    <!-- MODAL Z HASŁEM -->
-    <div id="passwordModal" class="password-modal">
-        <div class="password-box">
-            <h3>🔒 Potwierdź usunięcie danych</h3>
-            <p style="margin-bottom: 15px; color: #666;">Wpisz hasło aby wyczyścić wszystkie dane:</p>
-            <input type="password" id="passwordInput" class="password-input" placeholder="Hasło...">
-            <div class="password-buttons">
-                <button class="btn-password btn-confirm" onclick="checkPassword()">Potwierdź</button>
-                <button class="btn-password btn-cancel" onclick="hidePasswordModal()">Anuluj</button>
-            </div>
-        </div>
+    <!-- Month nav -->
+    <div class="month-nav" id="monthNav" aria-label="Nawigacja miesięcy"></div>
+
+    <!-- Desktop table -->
+    <table id="workTable" aria-label="Tabela ewidencji">
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+
+    <!-- Mobile list -->
+    <div id="dayList" class="day-list" hidden></div>
+
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <!-- Sticky action bar (mobile) -->
+  <div class="action-bar" id="actionBar">
+    <button class="btn btn-success" id="exportBtnMobile">Eksport CSV</button>
+    <button class="btn btn-danger" id="clearBtnMobile">Wyczyść</button>
+  </div>
+
+  <!-- Modal hasła -->
+  <div id="passwordModal" class="password-modal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.45); align-items:center; justify-content:center;">
+    <div class="password-box" style="background:#fff; padding:24px; border-radius:12px; width:min(92vw,420px); box-shadow:0 18px 60px rgba(0,0,0,.25); text-align:center;">
+      <h3 style="margin:0 0 10px; color:var(--danger);">🔒 Potwierdź usunięcie danych</h3>
+      <p style="margin:0 0 14px; color:#5b6b7c;">Wpisz hasło aby wyczyścić wszystkie dane:</p>
+      <input type="password" id="passwordInput" class="password-input" placeholder="Hasło..." />
+      <div class="password-buttons" style="display:flex; gap:10px; justify-content:center; margin-top:10px;">
+        <button class="btn-password btn-confirm" id="passwordConfirm" style="padding:10px 18px; background:var(--danger); color:#fff; border:0; border-radius:10px; font-weight:700;">Potwierdź</button>
+        <button class="btn-password btn-cancel" id="passwordCancel" style="padding:10px 18px; background:#95a5a6; color:#fff; border:0; border-radius:10px; font-weight:700;">Anuluj</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let db = null;
-        let currentMonth = '2026-02';
-        let unsubscribeListeners = [];
-        const months = {
-            '2026-01': 'Styczeń 2026', '2026-02': 'Luty 2026', '2026-03': 'Marzec 2026', '2026-04': 'Kwiecień 2026',
-            '2026-05': 'Maj 2026', '2026-06': 'Czerwiec 2026', '2026-07': 'Lipiec 2026', '2026-08': 'Sierpień 2026',
-            '2026-09': 'Wrzesień 2026', '2026-10': 'Październik 2026', '2026-11': 'Listopad 2026', '2026-12': 'Grudzień 2026'
-        };
-        const PASSWORD = 'Lisek123';
+<script>
+  /* ---------- State ---------- */
+  let db = null;
+  let currentMonth = '2026-02';
+  const PASSWORD = 'Lisek123';
 
-        // ✅ FUNKCJE MODALU HASŁA
-        function showPasswordModal() {
-            document.getElementById('passwordModal').classList.add('active');
-            document.getElementById('passwordInput').focus();
-            document.getElementById('passwordInput').value = '';
-        }
+  // Jeden listener na miesiąc
+  let monthUnsubscribe = null;
+  // Debounce zapisów
+  let debounceTimer = null;
 
-        function hidePasswordModal() {
-            document.getElementById('passwordModal').classList.remove('active');
-        }
+  const months = {
+    '2026-01':'Styczeń 2026','2026-02':'Luty 2026','2026-03':'Marzec 2026','2026-04':'Kwiecień 2026',
+    '2026-05':'Maj 2026','2026-06':'Czerwiec 2026','2026-07':'Lipiec 2026','2026-08':'Sierpień 2026',
+    '2026-09':'Wrzesień 2026','2026-10':'Październik 2026','2026-11':'Listopad 2026','2026-12':'Grudzień 2026'
+  };
 
-        function checkPassword() {
-            const input = document.getElementById('passwordInput').value;
-            if (input === PASSWORD) {
-                hidePasswordModal();
-                clearAllDataConfirmed(); // Wywołaj czyszczenie po poprawnym haśle
-            } else {
-                document.getElementById('passwordInput').style.borderColor = '#e74c3c';
-                setTimeout(() => {
-                    document.getElementById('passwordInput').style.borderColor = '#ddd';
-                }, 1000);
-                alert('❌ Błędne hasło!');
-            }
-        }
+  /* ---------- Init ---------- */
+  window.onload = () => {
+    initFirebaseAuto();
+    bindStaticUI();
+  };
 
-        // ESCAPE + ENTER
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                hidePasswordModal();
-            } else if (e.key === 'Enter' && document.getElementById('passwordModal').classList.contains('active')) {
-                checkPassword();
-            }
+  function initFirebaseAuto(){
+    try{
+      const config = {
+        apiKey: "AIzaSyDSo5uw9BVXgZMnbO76GwoFGAyZfit_p5M",
+        authDomain: "ewidencja-czasu-pracy-8ad0c.firebaseapp.com",
+        projectId: "ewidencja-czasu-pracy-8ad0c",
+        storageBucket: "ewidencja-czasu-pracy-8ad0c.firebasestorage.app",
+        messagingSenderId: "118818665200",
+        appId: "1:118818665200:web:b499b8bf6184c9e1438835"
+      };
+      if (!firebase.apps.length) firebase.initializeApp(config);
+      db = firebase.firestore();
+
+      setStatus(true, '✅ Połączono z Firestore');
+      initMonthNav();
+      renderCurrentMonth();
+    }catch(e){
+      setStatus(false, '❌ Błąd połączenia: ' + e.message);
+    }
+  }
+
+  /* ---------- UI helpers ---------- */
+  function setStatus(ok, msg){
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + (ok ? 'status-connected' : 'status-disconnected');
+  }
+
+  function initMonthNav(){
+    const nav = document.getElementById('monthNav');
+    nav.innerHTML = '';
+    Object.keys(months).forEach(key=>{
+      const b = document.createElement('button');
+      b.className = 'month-btn' + (key===currentMonth?' active':'');
+      b.textContent = months[key].split(' ')[0];
+      b.dataset.month = key;
+      b.addEventListener('click', () => switchMonth(key, b));
+      nav.appendChild(b);
+    });
+  }
+
+  function switchMonth(monthKey, btn){
+    currentMonth = monthKey;
+    document.querySelectorAll('.month-btn').forEach(el=>el.classList.remove('active'));
+    btn.classList.add('active');
+    renderCurrentMonth();
+  }
+
+  function bindStaticUI(){
+    // Export i Clear – desktop i mobile
+    document.getElementById('exportBtn').onclick = exportCSV;
+    document.getElementById('exportBtnMobile').onclick = exportCSV;
+    document.getElementById('clearBtn').onclick = showPasswordModal;
+    document.getElementById('clearBtnMobile').onclick = showPasswordModal;
+
+    // Modal
+    document.getElementById('passwordConfirm').onclick = checkPassword;
+    document.getElementById('passwordCancel').onclick = hidePasswordModal;
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape') hidePasswordModal();
+      if(e.key==='Enter' && isModalOpen()) checkPassword();
+    });
+
+    // Pokaż listę na mobile
+    const dayList = document.getElementById('dayList');
+    const media = window.matchMedia('(max-width: 768px)');
+    const syncVisibility = () => dayList.hidden = !media.matches;
+    media.addEventListener?.('change', syncVisibility);
+    syncVisibility();
+  }
+
+  function isModalOpen(){
+    return document.getElementById('passwordModal').style.display === 'flex';
+  }
+
+  function showPasswordModal(){
+    const m = document.getElementById('passwordModal');
+    m.style.display = 'flex';
+    const input = document.getElementById('passwordInput');
+    input.value = '';
+    setTimeout(()=>input.focus(), 50);
+  }
+  function hidePasswordModal(){
+    document.getElementById('passwordModal').style.display = 'none';
+  }
+  function checkPassword(){
+    const input = document.getElementById('passwordInput').value;
+    if(input === PASSWORD){
+      hidePasswordModal();
+      clearAllDataConfirmed();
+    }else{
+      const el = document.getElementById('passwordInput');
+      el.style.borderColor = '#e74c3c';
+      setTimeout(()=> el.style.borderColor = '#ddd', 900);
+      alert('❌ Błędne hasło!');
+    }
+  }
+
+  /* ---------- Rendering ---------- */
+  function renderCurrentMonth(){
+    // Odłącz poprzedni listener
+    if (monthUnsubscribe) { monthUnsubscribe(); monthUnsubscribe = null; }
+
+    // Tabela desktopowa
+    buildTableSkeleton();
+    // Karty mobile
+    buildMobileListSkeleton();
+
+    // Listener miesiąca
+    monthUnsubscribe = db.collection('worktime')
+      .where('month','==', currentMonth)
+      .onSnapshot(snap=>{
+        // Wczytaj dane do obu widoków
+        const mapByDate = new Map();
+        snap.forEach(doc => mapByDate.set(doc.data().date, doc.data()));
+        populateMonth(mapByDate);
+        updateSummary(); // po każdej zmianie
+      });
+
+    // Dopełnij dni bez dokumentów
+    populateMonth(new Map());
+  }
+
+  function getDaysInMonth(monthKey){
+    const [year, month] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const list = [];
+    const weekdays = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+    for(let d=1; d<=daysInMonth; d++){
+      const date = new Date(Date.UTC(year, month-1, d));
+      list.push({ iso: date.toISOString().slice(0,10), weekday: weekdays[date.getUTCDay()] });
+    }
+    return list;
+  }
+
+  function buildTableSkeleton(){
+    const thead = document.getElementById('tableHead');
+    const tbody = document.getElementById('tableBody');
+    thead.innerHTML = `
+      <tr>
+        <th>Data</th><th>Dzień</th>
+        <th>AW Start</th><th>AW Koniec</th><th>AW Godz</th>
+        <th>Retro Start</th><th>Retro Koniec</th><th>Retro Godz</th>
+        <th>Inw Start</th><th>Inw Koniec</th><th>Inw Godz</th>
+        <th>Suma</th>
+      </tr>`;
+    tbody.innerHTML = '';
+    getDaysInMonth(currentMonth).forEach(day=>{
+      const tr = document.createElement('tr');
+      tr.dataset.date = day.iso;
+      tr.innerHTML = `
+        <td>${day.iso}</td>
+        <td>${day.weekday}</td>
+        ${renderWorkCells('w1')}
+        ${renderWorkCells('w2')}
+        ${renderWorkCells('w3')}
+        <td class="hours" data-field="total"></td>
+      `;
+      tbody.appendChild(tr);
+      setupRowListeners(tr, day.iso);
+    });
+  }
+
+  function renderWorkCells(prefix){
+    // type=time dla lepszego UX na telefonach
+    return `
+      <td><input class="time-input" data-field="${prefix}start" type="time" inputmode="numeric" placeholder="hh:mm"></td>
+      <td><input class="time-input" data-field="${prefix}end" type="time" inputmode="numeric" placeholder="hh:mm"></td>
+      <td class="hours" data-field="${prefix}hours"></td>
+    `;
+  }
+
+  function buildMobileListSkeleton(){
+    const list = document.getElementById('dayList');
+    list.innerHTML = '';
+    getDaysInMonth(currentMonth).forEach(day=>{
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      card.dataset.date = day.iso;
+      card.innerHTML = `
+        <div class="day-head">
+          <div class="date">${day.iso}</div>
+          <div class="weekday">${day.weekday}</div>
+        </div>
+
+        ${renderMobileWorkGroup('AW Software','w1')}
+        ${renderMobileWorkGroup('Retro','w2')}
+        ${renderMobileWorkGroup('Inwentury','w3')}
+
+        <div class="sum-row">Suma: <span data-field="total" style="margin-left:6px;">—</span></div>
+      `;
+      list.appendChild(card);
+      setupCardListeners(card, day.iso);
+    });
+  }
+
+  function renderMobileWorkGroup(title, prefix){
+    return `
+      <div class="work-group">
+        <div class="work-title">${title}</div>
+        <div class="grid-2">
+          <div class="cell">
+            <label>Start</label>
+            <input class="time-input" data-field="${prefix}start" type="time" inputmode="numeric" placeholder="hh:mm">
+          </div>
+          <div class="cell">
+            <label>Koniec</label>
+            <input class="time-input" data-field="${prefix}end" type="time" inputmode="numeric" placeholder="hh:mm">
+          </div>
+        </div>
+        <div class="urlop-note">Wpisz <b>urlop</b> lub <b>u</b>, aby oznaczyć wolne.</div>
+        <div style="display:flex; justify-content:flex-end; gap:6px;">
+          <div>Godz:</div><div class="hours" data-field="${prefix}hours">—</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function populateMonth(mapByDate){
+    // wstaw dane (jeśli istnieją) do tabeli i kart
+    const days = getDaysInMonth(currentMonth).map(d=>d.iso);
+    days.forEach(dateIso=>{
+      const data = mapByDate.get(dateIso) || {};
+      // desktop
+      const tr = document.querySelector(`tr[data-date="${dateIso}"]`);
+      if (tr){
+        ['w1','w2','w3'].forEach(prefix=>{
+          const startInput = tr.querySelector(`[data-field="${prefix}start"]`);
+          const endInput   = tr.querySelector(`[data-field="${prefix}end"]`);
+          const hoursCell  = tr.querySelector(`[data-field="${prefix}hours"]`);
+          startInput.value = data[`${prefix}start`] || '';
+          endInput.value   = data[`${prefix}end`]   || '';
+          hoursCell.textContent = data[`${prefix}hours`] || '';
+          stylizeInputs(startInput, endInput);
         });
+        tr.querySelector('[data-field="total"]').textContent = data.total || '';
+      }
+      // mobile
+      const card = document.querySelector(`.day-card[data-date="${dateIso}"]`);
+      if (card){
+        ['w1','w2','w3'].forEach(prefix=>{
+          const startInput = card.querySelector(`[data-field="${prefix}start"]`);
+          const endInput   = card.querySelector(`[data-field="${prefix}end"]`);
+          const hoursCell  = card.querySelector(`[data-field="${prefix}hours"]`);
+          startInput.value = data[`${prefix}start`] || '';
+          endInput.value   = data[`${prefix}end`]   || '';
+          hoursCell.textContent = data[`${prefix}hours`] || '—';
+          stylizeInputs(startInput, endInput);
+        });
+        card.querySelector('[data-field="total"]').textContent = data.total || '—';
+      }
+    });
+  }
 
-        // ✅ AUTOMATYCZNA INICJALIZACJA FIREBASE - DZIAŁA NA KAŻDYM URZĄDZENIU
-        function initFirebaseAuto() {
-            try {
-                const config = {
-                    apiKey: "AIzaSyDSo5uw9BVXgZMnbO76GwoFGAyZfit_p5M",
-                    authDomain: "ewidencja-czasu-pracy-8ad0c.firebaseapp.com",
-                    projectId: "ewidencja-czasu-pracy-8ad0c",
-                    storageBucket: "ewidencja-czasu-pracy-8ad0c.firebasestorage.app", 
-                    messagingSenderId: "118818665200",
-                    appId: "1:118818665200:web:b499b8bf6184c9e1438835"
-                };
-                
-                if (!firebase.apps.length) {
-                    firebase.initializeApp(config);
-                }
-                db = firebase.firestore();
-                
-                document.getElementById('status').textContent = '✅ Połączono z Firestore - automatycznie';
-                document.getElementById('status').className = 'status status-connected';
-                document.getElementById('clearBtn').style.display = 'inline-block';
-                
-                initMonthNav();
-                loadMonth(currentMonth);
-                console.log('🚀 Firebase zainicjalizowany automatycznie!');
-                
-            } catch (error) {
-                console.error('Błąd inicjalizacji Firebase:', error);
-                document.getElementById('status').textContent = '❌ Błąd połączenia: ' + error.message;
-                document.getElementById('status').className = 'status status-disconnected';
-            }
+  /* ---------- Inputs & logic ---------- */
+
+  function setupRowListeners(tr, dateIso){
+    tr.querySelectorAll('.time-input').forEach(inp=>{
+      inp.addEventListener('input', ()=> onInputChanged(dateIso));
+      inp.addEventListener('blur',  ()=> onInputBlurFormat(inp));
+    });
+  }
+  function setupCardListeners(card, dateIso){
+    card.querySelectorAll('.time-input').forEach(inp=>{
+      inp.addEventListener('input', ()=> onInputChanged(dateIso));
+      inp.addEventListener('blur',  ()=> onInputBlurFormat(inp));
+    });
+  }
+
+  function onInputBlurFormat(input){
+    // Pozwól użytkownikowi wpisać np. "830" -> "08:30"
+    const v = (input.value || '').trim();
+    if (!v) return;
+    if (isUrlop(v)) { input.value = 'urlop'; return; }
+    const compact = v.replace(':','');
+    if (/^\d{3,4}$/.test(compact)){
+      const s = compact.padStart(4,'0');
+      input.value = `${s.slice(0,2)}:${s.slice(2)}`;
+    }
+  }
+
+  function isUrlop(val){
+    const t = (val||'').toLowerCase().trim();
+    return t==='u' || t==='urlop';
+  }
+
+  function onInputChanged(dateIso){
+    // Zbierz dane z obu widoków (desktop lub mobile – nie ma znaczenia)
+    const row = getUnifiedRow(dateIso);
+    // Przelicz godziny
+    ['w1','w2','w3'].forEach(prefix=>{
+      const s = row[`${prefix}start`];
+      const e = row[`${prefix}end`];
+      if (isUrlop(s) || isUrlop(e)){
+        row[`${prefix}start`] = 'urlop';
+        row[`${prefix}end`]   = 'urlop';
+        row[`${prefix}hours`] = '';
+      }else{
+        row[`${prefix}hours`] = (s && e) ? computeHours(s, e) : '';
+      }
+    });
+    row.total = computeRowTotal(row);
+
+    // Zapis (debounced)
+    debouncedSaveRow(currentMonth, dateIso, row);
+
+    // Odbicie w UI (oba widoki)
+    reflectRowInUI(dateIso, row);
+  }
+
+  function getUnifiedRow(dateIso){
+    // Priorytet: desktop jeśli istnieje, inaczej mobile
+    const tr = document.querySelector(`tr[data-date="${dateIso}"]`);
+    const card = document.querySelector(`.day-card[data-date="${dateIso}"]`);
+    const read = (scope, key) => scope?.querySelector(`[data-field="${key}"]`)?.value?.trim() || '';
+    const row = { month: currentMonth, date: dateIso };
+    ['w1','w2','w3'].forEach(p=>{
+      row[`${p}start`] = read(tr||card, `${p}start`);
+      row[`${p}end`]   = read(tr||card, `${p}end`);
+    });
+    return row;
+  }
+
+  function reflectRowInUI(dateIso, row){
+    // desktop
+    const tr = document.querySelector(`tr[data-date="${dateIso}"]`);
+    if (tr){
+      ['w1','w2','w3'].forEach(p=>{
+        tr.querySelector(`[data-field="${p}hours"]`).textContent = row[`${p}hours`] || '';
+        const s = tr.querySelector(`[data-field="${p}start"]`);
+        const e = tr.querySelector(`[data-field="${p}end"]`);
+        stylizeInputs(s,e);
+      });
+      tr.querySelector('[data-field="total"]').textContent = row.total || '';
+    }
+    // mobile
+    const card = document.querySelector(`.day-card[data-date="${dateIso}"]`);
+    if (card){
+      ['w1','w2','w3'].forEach(p=>{
+        card.querySelector(`[data-field="${p}hours"]`).textContent = row[`${p}hours`] || '—';
+        const s = card.querySelector(`[data-field="${p}start"]`);
+        const e = card.querySelector(`[data-field="${p}end"]`);
+        stylizeInputs(s,e);
+      });
+      card.querySelector('[data-field="total"]').textContent = row.total || '—';
+    }
+  }
+
+  function stylizeInputs(startInput, endInput){
+    // Reset klas
+    [startInput, endInput].forEach(el=>{
+      el.classList.remove('status-urlop','status-start','status-complete');
+      el.removeAttribute('aria-label');
+    });
+    const sVal = (startInput.value||'').trim().toLowerCase();
+    const eVal = (endInput.value||'').trim().toLowerCase();
+
+    if (isUrlop(sVal) || isUrlop(eVal)){
+      startInput.value = 'urlop';
+      endInput.value   = 'urlop';
+      startInput.classList.add('status-urlop');
+      endInput.classList.add('status-urlop');
+      startInput.setAttribute('aria-label','Urlop');
+      endInput.setAttribute('aria-label','Urlop');
+      return;
+    }
+    if (startInput.value && !endInput.value){
+      startInput.classList.add('status-start');
+      startInput.setAttribute('aria-label','Rozpoczęto');
+    }else if (startInput.value && endInput.value){
+      startInput.classList.add('status-complete');
+      endInput.classList.add('status-complete');
+      startInput.setAttribute('aria-label','Kompletne');
+      endInput.setAttribute('aria-label','Kompletne');
+    }
+  }
+
+  function parseTime(str){
+    if (!str) return null;
+    const m = str.match(/^(\d{1,2})(?::(\d{2}))?$/);
+    if (!m) return null;
+    const h = parseInt(m[1],10);
+    const min = parseInt(m[2] ?? '0', 10);
+    if (h>23 || min>59) return null;
+    return h*60 + min;
+  }
+
+  function computeHours(startStr, endStr){
+    const s = parseTime(startStr);
+    const e = parseTime(endStr);
+    if (s===null || e===null) return '';
+    let diff = e - s;
+    if (diff < 0) diff += 24*60; // nocny zakres
+    return (diff/60).toFixed(2);
+  }
+
+  function computeRowTotal(row){
+    let sum = 0, any = false;
+    ['w1','w2','w3'].forEach(p=>{
+      const v = parseFloat((row[`${p}hours`]||'').replace(',','.'));
+      if(!isNaN(v)){ sum+=v; any=true; }
+    });
+    return any ? sum.toFixed(2) : '';
+  }
+
+  function debouncedSaveRow(monthKey, dateIso, row){
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async ()=>{
+      const docId = monthKey + '-' + dateIso.replace(/-/g, '');
+      const docRef = db.collection('worktime').doc(docId);
+      await docRef.set(row, { merge:true });
+      // Po zapisie summary i tak zostanie zaktualizowane przez onSnapshot miesiąca.
+    }, 300);
+  }
+
+  /* ---------- Summary ---------- */
+  async function updateSummary(){
+    const summaryDiv = document.getElementById('summary');
+    let totalAll = 0;
+    let html = '';
+    for(const key of Object.keys(months)){
+      const q = await db.collection('worktime').where('month','==', key).get();
+      let mSum = 0;
+      q.forEach(doc=>{
+        const d = doc.data();
+        if (d.total){
+          const v = parseFloat(String(d.total).replace(',','.'));
+          if (!isNaN(v)) mSum += v;
         }
+      });
+      html += `<div class="summary-row"><span>${months[key]}</span><span>${mSum.toFixed(2)} h</span></div>`;
+      totalAll += mSum;
+    }
+    html += `<div class="summary-total"><span>RAZEM 2026</span><span>${totalAll.toFixed(2)} h</span></div>`;
+    summaryDiv.innerHTML = html;
+  }
 
-        // AUTOMATYCZNY START PO ZAŁADOWANIU STRONY
-        window.onload = function() {
-            initFirebaseAuto();
-        };
+  /* ---------- Export ---------- */
+  function exportCSV(){
+    const rows = [['Data','Dzień','AW Start','AW Koniec','AW Godz','Retro Start','Retro Koniec','Retro Godz','Inw Start','Inw Koniec','Inw Godz','Suma']];
+    // Korzystamy z desktopowego źródła, bo ma pełną strukturę – na mobile tabela jest ukryta, ale w DOM istnieje
+    document.querySelectorAll('#workTable tbody tr').forEach(tr=>{
+      const cells = [];
+      // Data / Dzień
+      cells.push(tr.children[0].textContent.trim());
+      cells.push(tr.children[1].textContent.trim());
+      // 3 sekcje (start/end/hours)
+      ['w1','w2','w3'].forEach(p=>{
+        const s = tr.querySelector(`[data-field="${p}start"]`)?.value || '';
+        const e = tr.querySelector(`[data-field="${p}end"]`)?.value || '';
+        const h = tr.querySelector(`[data-field="${p}hours"]`)?.textContent?.trim() || '';
+        cells.push(s, e, h);
+      });
+      // suma
+      cells.push(tr.querySelector('[data-field="total"]')?.textContent?.trim() || '');
+      rows.push(cells);
+    });
+    const csv = rows.map(r => r.map(f => `"${String(f).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `Ewidencja_${currentMonth}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
-        function initMonthNav() {
-            const nav = document.getElementById('monthNav');
-            nav.innerHTML = '';
-            Object.keys(months).forEach((key, idx) => {
-                const btn = document.createElement('button');
-                btn.className = 'month-btn' + (key === currentMonth ? ' active' : '');
-                btn.textContent = months[key].split(' ')[0];
-                btn.dataset.month = key;
-                btn.onclick = (ev) => switchMonth(ev, key);
-                nav.appendChild(btn);
-            });
-        }
-
-        function switchMonth(ev, monthKey) {
-            currentMonth = monthKey;
-            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
-            ev.target.classList.add('active');
-            loadMonth(monthKey);
-        }
-
-        function getDaysInMonth(monthKey) {
-            const [year, month] = monthKey.split('-').map(Number);
-            const daysInMonth = new Date(year, month, 0).getDate();
-            const list = [];
-            const weekdays = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
-            for (let d = 1; d <= daysInMonth; d++) {
-                const date = new Date(Date.UTC(year, month - 1, d));
-                const iso = date.toISOString().slice(0, 10);
-                const weekday = weekdays[date.getUTCDay()];
-                list.push({ iso, weekday });
-            }
-            return list;
-        }
-
-        function loadMonth(monthKey) {
-            if (!db) return;
-            unsubscribeListeners.forEach(u => u());
-            unsubscribeListeners = [];
-            const days = getDaysInMonth(monthKey);
-            const thead = document.getElementById('tableHead');
-            const tbody = document.getElementById('tableBody');
-            thead.innerHTML = '<tr><th>Data</th><th>Dzień</th><th>AW Software<br>Start</th><th>AW Software<br>Konieć</th><th>AW Software<br>Godz</th><th>Retro<br>Start</th><th>Retro<br>Konieć</th><th>Retro<br>Godz</th><th>Inwentury<br>Start</th><th>Inwentury<br>Konieć</th><th>Inwentury<br>Godz</th><th>Suma</th></tr>';
-            tbody.innerHTML = '';
-            days.forEach(day => {
-                const tr = document.createElement('tr');
-                tr.dataset.date = day.iso;
-                tr.innerHTML = `<td>${day.iso}</td><td>${day.weekday}</td>${renderWorkCells('w1')}${renderWorkCells('w2')}${renderWorkCells('w3')}<td class="hours" data-field="total"></td>`;
-                tbody.appendChild(tr);
-                setupRowListeners(tr, monthKey, day.iso);
-                loadRowData(tr, monthKey, day.iso);
-            });
-            updateSummary();
-        }
-
-        function renderWorkCells(prefix) {
-            return `<td><input class="time-input" data-field="${prefix}start"></td><td><input class="time-input" data-field="${prefix}end"></td><td class="hours" data-field="${prefix}hours"></td>`;
-        }
-
-        function parseTime(str) {
-            if (!str) return null;
-            const m = str.match(/^(\d{1,2})(?::(\d{2}))?$/);
-            if (!m) return null;
-            const h = parseInt(m[1], 10);
-            const min = parseInt(m[2] || '0', 10);
-            if (h > 23 || min > 59) return null;
-            return h * 60 + min;
-        }
-
-        function computeHours(startStr, endStr) {
-            const s = parseTime(startStr);
-            const e = parseTime(endStr);
-            if (s === null || e === null) return '';
-            let diff = e - s;
-            if (diff < 0) diff += 24 * 60;
-            return (diff / 60).toFixed(2);
-        }
-
-        function styleInputs(startInput, endInput, isUrlop, hasEnd) {
-            startInput.classList.remove('status-urlop', 'status-start', 'status-complete');
-            endInput.classList.remove('status-urlop', 'status-start', 'status-complete');
-            if (isUrlop) {
-                startInput.value = 'urlop';
-                endInput.value = 'urlop';
-                startInput.classList.add('status-urlop');
-                endInput.classList.add('status-urlop');
-            } else {
-                if (startInput.value && !hasEnd) startInput.classList.add('status-start');
-                else if (startInput.value && hasEnd) {
-                    startInput.classList.add('status-complete');
-                    endInput.classList.add('status-complete');
-                }
-            }
-        }
-
-        function setupRowListeners(tr, monthKey, dateIso) {
-            const inputs = tr.querySelectorAll('.time-input');
-            inputs.forEach(inp => inp.addEventListener('input', () => handleInputChange(tr, monthKey, dateIso)));
-        }
-
-        async function handleInputChange(tr, monthKey, dateIso) {
-            if (!db) return;
-            const docRef = db.collection('worktime').doc(monthKey + '-' + dateIso.replace(/-/g, ''));
-            const data = { month: monthKey, date: dateIso };
-            ['w1', 'w2', 'w3'].forEach(prefix => {
-                const startInput = tr.querySelector(`[data-field="${prefix}start"]`);
-                const endInput = tr.querySelector(`[data-field="${prefix}end"]`);
-                const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
-                let startVal = startInput.value.trim();
-                let endVal = endInput.value.trim();
-                if (startVal.toLowerCase() === 'u') startVal = 'urlop';
-                if (endVal.toLowerCase() === 'u') endVal = 'urlop';
-                const isUrlop = startVal.toLowerCase() === 'urlop' || endVal.toLowerCase() === 'urlop';
-                styleInputs(startInput, endInput, isUrlop, !!endVal && !isUrlop);
-                data[`${prefix}start`] = startVal;
-                data[`${prefix}end`] = endVal;
-                let hours = '';
-                if (!isUrlop && startVal && endVal) hours = computeHours(startVal, endVal);
-                hoursCell.textContent = hours;
-                data[`${prefix}hours`] = hours;
-            });
-            data.total = calcRowTotal(tr);
-            tr.querySelector('[data-field="total"]').textContent = data.total;
-            await docRef.set(data, { merge: true });
-            updateSummary();
-        }
-
-        function loadRowData(tr, monthKey, dateIso) {
-            if (!db) return;
-            if (!dateIso.startsWith(monthKey)) return;
-            const docId = monthKey + '-' + dateIso.replace(/-/g, '');
-            const docRef = db.collection('worktime').doc(docId);
-            const unsub = docRef.onSnapshot(snap => {
-                if (!snap.exists) return;
-                const data = snap.data();
-                ['w1', 'w2', 'w3'].forEach(prefix => {
-                    const startInput = tr.querySelector(`[data-field="${prefix}start"]`);
-                    const endInput = tr.querySelector(`[data-field="${prefix}end"]`);
-                    const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
-                    startInput.value = data[`${prefix}start`] || '';
-                    endInput.value = data[`${prefix}end`] || '';
-                    hoursCell.textContent = data[`${prefix}hours`] || '';
-                });
-                tr.querySelector('[data-field="total"]').textContent = data.total || '';
-                const isUrlop = (data.w1start || '').toLowerCase() === 'urlop' || (data.w1end || '').toLowerCase() === 'urlop';
-                const hasEnd = !!(data.w1end && !isUrlop);
-                styleInputs(tr.querySelector('[data-field="w1start"]'), tr.querySelector('[data-field="w1end"]'), isUrlop, hasEnd);
-            });
-            unsubscribeListeners.push(unsub);
-        }
-
-        function calcRowTotal(tr) {
-            let sum = 0;
-            let any = false;
-            ['w1', 'w2', 'w3'].forEach(prefix => {
-                const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
-                const v = parseFloat(hoursCell.textContent.replace(',', '.'));
-                if (!isNaN(v)) { sum += v; any = true; }
-            });
-            return any ? sum.toFixed(2) : '';
-        }
-
-        async function updateSummary() {
-            if (!db) return;
-            const summaryDiv = document.getElementById('summary');
-            let totalAll = 0;
-            let html = '';
-            for (const key of Object.keys(months)) {
-                const q = await db.collection('worktime').where('month', '==', key).get();
-                let mSum = 0;
-                q.forEach(doc => {
-                    const d = doc.data();
-                    if (d.total) {
-                        const v = parseFloat(d.total.replace(',', '.'));
-                        if (!isNaN(v)) mSum += v;
-                    }
-                });
-                html += `<div class="summary-row"><span>${months[key]}</span><span>${mSum.toFixed(2)} h</span></div>`;
-                totalAll += mSum;
-            }
-            html += `<div class="summary-total"><span>RAZEM 2026</span><span>${totalAll.toFixed(2)} h</span></div>`;
-            summaryDiv.innerHTML = html;
-        }
-
-        // ✅ PRZENIESIONA FUNKCJA CZYSZCZENIA - TYLKO PO POPRAWNYM HASLE
-        async function clearAllDataConfirmed() {
-            if (!confirm('⚠️ USUŃ WSZYSTKIE DANE 2026?\n\nUWAGA: Ta operacja jest nieodwracalna!')) return;
-            try {
-                let snap = await db.collection('worktime').get();
-                if (snap.size === 0) return alert('Brak danych do usunięcia!');
-                let batch = db.batch();
-                snap.docs.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                alert(`🗑️ USUNIĘTO ${snap.size} rekordów!`);
-                loadMonth(currentMonth);
-            } catch(e) {
-                alert('BŁĄD: ' + e.message);
-            }
-        }
-
-        function exportCSV() {
-            const rows = [['Data', 'Dzień', 'AW Start', 'AW Koniec', 'AW Godz', 'Retro Start', 'Retro Koniec', 'Retro Godz', 'Inw Start', 'Inw Koniec', 'Inw Godz', 'Suma']];
-            const table = document.getElementById('workTable');
-            const tbodyRows = table.querySelectorAll('tbody tr');
-            tbodyRows.forEach(tr => {
-                const cells = [];
-                tr.querySelectorAll('td').forEach((cell, idx) => {
-                    if (idx === 0 || idx === 1 || (idx % 3 !== 2)) {
-                        cells.push(cell.textContent || cell.querySelector('input')?.value || '');
-                    }
-                });
-                rows.push(cells);
-            });
-            const csv = rows.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Ewidencja_${currentMonth}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    </script>
+  /* ---------- Clear all (with confirm) ---------- */
+  async function clearAllDataConfirmed(){
+    if (!confirm('⚠️ USUŃ WSZYSTKIE DANE 2026?\n\nUWAGA: Ta operacja jest nieodwracalna!')) return;
+    try{
+      const snap = await db.collection('worktime').get();
+      if (snap.size === 0){ alert('Brak danych do usunięcia!'); return; }
+      const batch = db.batch();
+      snap.docs.forEach(doc=> batch.delete(doc.ref));
+      await batch.commit();
+      alert(`🗑️ USUNIĘTO ${snap.size} rekordów!`);
+      renderCurrentMonth();
+    }catch(e){
+      alert('BŁĄD: ' + e.message);
+    }
+  }
+</script>
 </body>
 </html>

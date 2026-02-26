@@ -18,12 +18,10 @@
       --primary:#3498db;
       --success:#27ae60;
       --danger:#e74c3c;
-      --muted:#ecf0f1;
       --line:#e6eaee;
       --pill:#ecf0f1;
       --accent:#34495e;
-      --radius:12px;
-      --radius-sm:8px;
+      --weekend:#ffecec;
       --shadow:0 6px 22px rgba(0,0,0,.08);
       --shadow-sm:0 3px 12px rgba(0,0,0,.08);
     }
@@ -62,9 +60,7 @@
     .status-connected{background:#d4edda;color:#155724;border-color:#c3e6cb}
     .status-disconnected{background:#f8d7da;color:#721c24;border-color:#f5c6cb}
 
-    .controls{
-      display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;
-    }
+    .controls{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
 
     button{
       border:0; border-radius:10px; padding:10px 14px; cursor:pointer;
@@ -76,10 +72,13 @@
     .btn-primary{background:var(--primary)}
     .btn-success{background:var(--success)}
     .btn-danger{background:var(--danger)}
-    .btn-ghost{background:#e9eef4;color:#233244}
+
+    .row{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
 
     .month-nav{
-      display:flex; gap:8px; margin:12px 0 14px; overflow-x:auto; padding-bottom:2px;
+      display:flex; gap:8px; margin:12px 0 8px; overflow-x:auto; padding-bottom:2px;
       -webkit-overflow-scrolling:touch; scrollbar-width:thin;
     }
     .month-btn{
@@ -87,6 +86,20 @@
       color:var(--ink); border:1px solid #d6dde6; font-weight:600; cursor:pointer;
     }
     .month-btn.active{background:var(--primary); color:#fff; border-color:transparent}
+
+    /* Legenda (desktop) */
+    .legend{
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+      background:var(--card); border:1px solid #e6ecf3; border-radius:10px; padding:10px 12px; box-shadow:var(--shadow-sm);
+      margin-bottom:12px;
+    }
+    .legend .item{display:flex; gap:8px; align-items:center; font-size:13px; color:#334155}
+    .legend .dot{width:16px; height:16px; border-radius:4px; border:1px solid rgba(0,0,0,.08)}
+    .legend .dot.urlop{background:#2980b9}
+    .legend .dot.unpaid{background:#8e44ad}
+    .legend .dot.start{background:#e74c3c}
+    .legend .dot.complete{background:#27ae60}
+    .legend .dot.weekend{background:var(--weekend); border-color:#f0b3b3}
 
     /* Desktop table */
     table{
@@ -100,6 +113,7 @@
     td,th{border-bottom:1px solid var(--line)}
     tbody td{padding:10px 6px; font-size:13px}
     td:first-child{background:#e9f3ff; font-weight:700}
+    tr.weekend-row td{ background:var(--weekend) !important; }
     .hours{text-align:center; font-weight:700}
 
     .time-input{
@@ -118,8 +132,10 @@
       background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:16px; margin-top:16px;
     }
     .summary-row{display:flex; justify-content:space-between; margin:6px 0; color:var(--ink-soft)}
-    .summary-total{display:flex; justify-content:space-between; margin-top:10px; padding-top:12px;
-      border-top:2px solid var(--primary); font-size:18px; font-weight:800; color:var(--accent)}
+    .summary-total{
+      display:flex; justify-content:space-between; margin-top:10px; padding-top:12px;
+      border-top:2px solid var(--primary); font-size:18px; font-weight:800; color:var(--accent)
+    }
 
     /* Sticky action bar on mobile */
     .action-bar{
@@ -138,6 +154,7 @@
         background:var(--card); border-radius:12px; box-shadow:var(--shadow); padding:12px;
         display:grid; gap:10px;
       }
+      .day-card.weekend-card{ background:var(--weekend) !important; }
       .day-head{display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid var(--line); padding-bottom:6px}
       .day-head .date{font-weight:800}
       .day-head .weekday{color:var(--ink-soft); font-weight:600}
@@ -148,7 +165,7 @@
       .cell{display:grid; gap:6px}
       .cell label{font-size:12px; color:#607089; font-weight:700}
       .sum-row{display:flex; justify-content:flex-end; font-weight:800}
-      .urlop-note{font-size:12px; color:#0b3d5c; font-weight:700}
+      .note{font-size:12px; color:#0b3d5c; font-weight:700}
     }
   </style>
 </head>
@@ -165,6 +182,15 @@
 
     <!-- Month nav -->
     <div class="month-nav" id="monthNav" aria-label="Nawigacja miesięcy"></div>
+
+    <!-- LEGEND (desktop) -->
+    <div class="legend" id="legend">
+      <div class="item"><span class="dot urlop"></span>Urlop (płatny)</div>
+      <div class="item"><span class="dot unpaid"></span>Wolne bezpłatne</div>
+      <div class="item"><span class="dot start"></span>Rozpoczęto</div>
+      <div class="item"><span class="dot complete"></span>Kompletne</div>
+      <div class="item"><span class="dot weekend"></span>Weekend</div>
+    </div>
 
     <!-- Desktop table -->
     <table id="workTable" aria-label="Tabela ewidencji">
@@ -332,15 +358,13 @@
     monthUnsubscribe = db.collection('worktime')
       .where('month','==', currentMonth)
       .onSnapshot(snap=>{
-        // Wczytaj dane do obu widoków
         const mapByDate = new Map();
         snap.forEach(doc => mapByDate.set(doc.data().date, doc.data()));
         populateMonth(mapByDate);
         updateSummary(); // po każdej zmianie
       });
 
-    // Dopełnij dni bez dokumentów
-    populateMonth(new Map());
+    populateMonth(new Map()); // dopełnij dni bez dokumentów
   }
 
   function getDaysInMonth(monthKey){
@@ -370,6 +394,7 @@
     getDaysInMonth(currentMonth).forEach(day=>{
       const tr = document.createElement('tr');
       tr.dataset.date = day.iso;
+      if (day.weekday === 'Sobota' || day.weekday === 'Niedziela') tr.classList.add('weekend-row');
       tr.innerHTML = `
         <td>${day.iso}</td>
         <td>${day.weekday}</td>
@@ -384,10 +409,10 @@
   }
 
   function renderWorkCells(prefix){
-    // type=time dla lepszego UX na telefonach
+    /* type="text" pozwala wpisać czas oraz skróty u/w */
     return `
-      <td><input class="time-input" data-field="${prefix}start" type="time" inputmode="numeric" placeholder="hh:mm"></td>
-      <td><input class="time-input" data-field="${prefix}end" type="time" inputmode="numeric" placeholder="hh:mm"></td>
+      <td><input class="time-input" data-field="${prefix}start" type="text" inputmode="text" placeholder="hh:mm / u / w"></td>
+      <td><input class="time-input" data-field="${prefix}end"   type="text" inputmode="text" placeholder="hh:mm / u / w"></td>
       <td class="hours" data-field="${prefix}hours"></td>
     `;
   }
@@ -398,6 +423,7 @@
     getDaysInMonth(currentMonth).forEach(day=>{
       const card = document.createElement('div');
       card.className = 'day-card';
+      if (day.weekday === 'Sobota' || day.weekday === 'Niedziela') card.classList.add('weekend-card');
       card.dataset.date = day.iso;
       card.innerHTML = `
         <div class="day-head">
@@ -423,14 +449,14 @@
         <div class="grid-2">
           <div class="cell">
             <label>Start</label>
-            <input class="time-input" data-field="${prefix}start" type="time" inputmode="numeric" placeholder="hh:mm">
+            <input class="time-input" data-field="${prefix}start" type="text" inputmode="text" placeholder="hh:mm / u / w">
           </div>
           <div class="cell">
             <label>Koniec</label>
-            <input class="time-input" data-field="${prefix}end" type="time" inputmode="numeric" placeholder="hh:mm">
+            <input class="time-input" data-field="${prefix}end" type="text" inputmode="text" placeholder="hh:mm / u / w">
           </div>
         </div>
-        <div class="urlop-note">
+        <div class="note">
           Wpisz <b>urlop</b> lub <b>u</b> (płatny) albo <b>w</b> / <b>bezpłatne</b> (wolne bezpłatne).
         </div>
         <div style="display:flex; justify-content:flex-end; gap:6px;">
@@ -441,7 +467,6 @@
   }
 
   function populateMonth(mapByDate){
-    // wstaw dane (jeśli istnieją) do tabeli i kart
     const days = getDaysInMonth(currentMonth).map(d=>d.iso);
     days.forEach(dateIso=>{
       const data = mapByDate.get(dateIso) || {};
@@ -492,16 +517,16 @@
   }
 
   function onInputBlurFormat(input){
-    // Pozwól wpisać np. "830" -> "08:30", oraz normalizuj skróty
+    // Pozwól wpisać np. "830" -> "08:30", oraz normalizuj skróty tylko na TYM polu
     const v = (input.value || '').trim();
     if (!v) return;
 
-    if (isUrlop(v)) { 
-      input.value = 'urlop'; 
-      return; 
+    if (isUrlop(v)) {
+      input.value = 'urlop';
+      return;
     }
     if (isUnpaid(v)) {
-      input.value = 'bezpłatne'; 
+      input.value = 'bezpłatne';
       return;
     }
 
@@ -523,39 +548,46 @@
   }
 
   function onInputChanged(dateIso){
-    // Zbierz dane z obu widoków (desktop lub mobile – nie ma znaczenia)
+    // Zbierz dane z obu widoków
     const row = getUnifiedRow(dateIso);
-    // Przelicz godziny
+
+    // Przelicz godziny sekcji (bez siłowego nadpisywania drugiego pola)
     ['w1','w2','w3'].forEach(prefix=>{
-      const s = row[`${prefix}start`];
-      const e = row[`${prefix}end`];
+      let s = (row[`${prefix}start`]||'').trim();
+      let e = (row[`${prefix}end`]||'').trim();
 
       const anyUrlop = isUrlop(s) || isUrlop(e);
       const anyUnpaid = isUnpaid(s) || isUnpaid(e);
 
-      if (anyUrlop){
-        row[`${prefix}start`] = 'urlop';
-        row[`${prefix}end`]   = 'urlop';
-        row[`${prefix}hours`] = '';
-      } else if (anyUnpaid){
-        row[`${prefix}start`] = 'bezpłatne';
-        row[`${prefix}end`]   = 'bezpłatne';
+      // Jeżeli OBIE wartości istnieją i jedna to skrót, ujednól (łatwiej czytać i eksportować),
+      // ale dzięki temu, że reagujemy na input na bieżąco, usunięcie treści w jednym polu NIE zostanie nadpisane.
+      if (s && e){
+        if (anyUrlop){ s = 'urlop'; e = 'urlop'; }
+        else if (anyUnpaid){ s = 'bezpłatne'; e = 'bezpłatne'; }
+      }
+
+      // Zapisz z powrotem do modelu (nie do inputów)
+      row[`${prefix}start`] = s;
+      row[`${prefix}end`]   = e;
+
+      // Godziny: tylko gdy nie nieobecność i oba czasy poprawne
+      if (isUrlop(s) || isUrlop(e) || isUnpaid(s) || isUnpaid(e)) {
         row[`${prefix}hours`] = '';
       } else {
         row[`${prefix}hours`] = (s && e) ? computeHours(s, e) : '';
       }
     });
+
     row.total = computeRowTotal(row);
 
     // Zapis (debounced)
     debouncedSaveRow(currentMonth, dateIso, row);
 
-    // Odbicie w UI (oba widoki)
+    // Odbicie w UI (oba widoki) – tutaj też NIE narzucamy wartości, tylko style
     reflectRowInUI(dateIso, row);
   }
 
   function getUnifiedRow(dateIso){
-    // Priorytet: desktop jeśli istnieje, inaczej mobile
     const tr = document.querySelector(`tr[data-date="${dateIso}"]`);
     const card = document.querySelector(`.day-card[data-date="${dateIso}"]`);
     const read = (scope, key) => scope?.querySelector(`[data-field="${key}"]`)?.value?.trim() || '';
@@ -602,21 +634,18 @@
     const sVal = (startInput.value||'').trim().toLowerCase();
     const eVal = (endInput.value||'').trim().toLowerCase();
 
-    // Urlop (płatny)
-    if (isUrlop(sVal) || isUrlop(eVal)){
-      startInput.value = 'urlop';
-      endInput.value   = 'urlop';
+    const anyUrlop = isUrlop(sVal) || isUrlop(eVal);
+    const anyUnpaid = isUnpaid(sVal) || isUnpaid(eVal);
+
+    // Uwaga: NIE nadpisujemy wartości inputów – tylko styl
+    if (anyUrlop){
       startInput.classList.add('status-urlop');
       endInput.classList.add('status-urlop');
       startInput.setAttribute('aria-label','Urlop');
       endInput.setAttribute('aria-label','Urlop');
       return;
     }
-
-    // Wolne bezpłatne
-    if (isUnpaid(sVal) || isUnpaid(eVal)){
-      startInput.value = 'bezpłatne';
-      endInput.value   = 'bezpłatne';
+    if (anyUnpaid){
       startInput.classList.add('status-unpaid');
       endInput.classList.add('status-unpaid');
       startInput.setAttribute('aria-label','Wolne bezpłatne');
@@ -670,8 +699,7 @@
       const docId = monthKey + '-' + dateIso.replace(/-/g, '');
       const docRef = db.collection('worktime').doc(docId);
       await docRef.set(row, { merge:true });
-      // Po zapisie summary i tak zostanie zaktualizowane przez onSnapshot miesiąca.
-    }, 300);
+    }, 250);
   }
 
   /* ---------- Summary ---------- */

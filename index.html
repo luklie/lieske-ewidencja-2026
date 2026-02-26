@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ewidencja Czasu Pracy 2026</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Segoe UI, Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .controls { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        button { padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .status { padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: 500; }
+        .status-connected { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status-disconnected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .month-nav { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .month-btn { padding: 8px 16px; background: #ecf0f1; color: #2c3e50; border: 1px solid #bdc3c7; border-radius: 20px; cursor: pointer; }
+        .month-btn.active { background: #3498db; color: white; }
+        table { width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-collapse: collapse; }
+        th, td { padding: 10px 6px; text-align: left; border-bottom: 1px solid #ecf0f1; font-size: 13px; }
+        th { background: #34495e; color: white; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+        td:first-child { background: #e3f2fd; font-weight: 500; }
+        .time-input { padding: 6px; border: 2px solid #ddd; border-radius: 4px; width: 100%; font-size: 13px; }
+        .time-input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 3px rgba(52,152,219,0.1); }
+        .status-urlop { background: #2980b9 !important; color: white !important; font-weight: 500; }
+        .status-start { background: #e74c3c !important; color: white !important; }
+        .status-complete { background: #27ae60 !important; color: white !important; }
+        .hours { font-weight: 600; text-align: center; }
+        .summary { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .summary-total { font-size: 20px; font-weight: bold; color: #2c3e50; border-top: 2px solid #3498db; padding-top: 12px; }
+        
+        /* NOWE STYLE DLA MODALU HASŁA */
+        .password-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .password-modal.active { display: flex; align-items: center; justify-content: center; }
+        .password-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .password-box h3 { color: #e74c3c; margin-bottom: 20px; }
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .password-input:focus { border-color: #e74c3c; outline: none; }
+        .password-buttons { display: flex; gap: 10px; justify-content: center; }
+        .btn-password { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .btn-confirm { background: #e74c3c; color: white; }
+        .btn-cancel { background: #95a5a6; color: white; }
+        @media (max-width: 900px) { .controls, .month-nav { flex-direction: column; } table { font-size: 11px; } th, td { padding: 6px 4px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ewidencja Czasu Pracy 2026</h1>
+        <div id="status" class="status status-disconnected">Ładowanie synchronizacji...</div>
+        <div class="controls">
+            <button class="btn-success" onclick="exportCSV()">Eksport CSV</button>
+            <button class="btn-danger" onclick="showPasswordModal()" id="clearBtn">Wyczyść dane</button>
+        </div>
+        <div class="month-nav" id="monthNav"></div>
+        <table id="workTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div class="summary" id="summary"></div>
+    </div>
+
+    <!-- MODAL Z HASŁEM -->
+    <div id="passwordModal" class="password-modal">
+        <div class="password-box">
+            <h3>🔒 Potwierdź usunięcie danych</h3>
+            <p style="margin-bottom: 15px; color: #666;">Wpisz hasło aby wyczyścić wszystkie dane:</p>
+            <input type="password" id="passwordInput" class="password-input" placeholder="Hasło...">
+            <div class="password-buttons">
+                <button class="btn-password btn-confirm" onclick="checkPassword()">Potwierdź</button>
+                <button class="btn-password btn-cancel" onclick="hidePasswordModal()">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db = null;
+        let currentMonth = '2026-02';
+        let unsubscribeListeners = [];
+        const months = {
+            '2026-01': 'Styczeń 2026', '2026-02': 'Luty 2026', '2026-03': 'Marzec 2026', '2026-04': 'Kwiecień 2026',
+            '2026-05': 'Maj 2026', '2026-06': 'Czerwiec 2026', '2026-07': 'Lipiec 2026', '2026-08': 'Sierpień 2026',
+            '2026-09': 'Wrzesień 2026', '2026-10': 'Październik 2026', '2026-11': 'Listopad 2026', '2026-12': 'Grudzień 2026'
+        };
+        const PASSWORD = 'Lisek123';
+
+        // ✅ FUNKCJE MODALU HASŁA
+        function showPasswordModal() {
+            document.getElementById('passwordModal').classList.add('active');
+            document.getElementById('passwordInput').focus();
+            document.getElementById('passwordInput').value = '';
+        }
+
+        function hidePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('active');
+        }
+
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            if (input === PASSWORD) {
+                hidePasswordModal();
+                clearAllDataConfirmed(); // Wywołaj czyszczenie po poprawnym haśle
+            } else {
+                document.getElementById('passwordInput').style.borderColor = '#e74c3c';
+                setTimeout(() => {
+                    document.getElementById('passwordInput').style.borderColor = '#ddd';
+                }, 1000);
+                alert('❌ Błędne hasło!');
+            }
+        }
+
+        // ESCAPE + ENTER
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hidePasswordModal();
+            } else if (e.key === 'Enter' && document.getElementById('passwordModal').classList.contains('active')) {
+                checkPassword();
+            }
+        });
+
+        // ✅ AUTOMATYCZNA INICJALIZACJA FIREBASE - DZIAŁA NA KAŻDYM URZĄDZENIU
+        function initFirebaseAuto() {
+            try {
+                const config = {
+                    apiKey: "AIzaSyDSo5uw9BVXgZMnbO76GwoFGAyZfit_p5M",
+                    authDomain: "ewidencja-czasu-pracy-8ad0c.firebaseapp.com",
+                    projectId: "ewidencja-czasu-pracy-8ad0c",
+                    storageBucket: "ewidencja-czasu-pracy-8ad0c.firebasestorage.app", 
+                    messagingSenderId: "118818665200",
+                    appId: "1:118818665200:web:b499b8bf6184c9e1438835"
+                };
+                
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(config);
+                }
+                db = firebase.firestore();
+                
+                document.getElementById('status').textContent = '✅ Połączono z Firestore - automatycznie';
+                document.getElementById('status').className = 'status status-connected';
+                document.getElementById('clearBtn').style.display = 'inline-block';
+                
+                initMonthNav();
+                loadMonth(currentMonth);
+                console.log('🚀 Firebase zainicjalizowany automatycznie!');
+                
+            } catch (error) {
+                console.error('Błąd inicjalizacji Firebase:', error);
+                document.getElementById('status').textContent = '❌ Błąd połączenia: ' + error.message;
+                document.getElementById('status').className = 'status status-disconnected';
+            }
+        }
+
+        // AUTOMATYCZNY START PO ZAŁADOWANIU STRONY
+        window.onload = function() {
+            initFirebaseAuto();
+        };
+
+        function initMonthNav() {
+            const nav = document.getElementById('monthNav');
+            nav.innerHTML = '';
+            Object.keys(months).forEach((key, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'month-btn' + (key === currentMonth ? ' active' : '');
+                btn.textContent = months[key].split(' ')[0];
+                btn.dataset.month = key;
+                btn.onclick = (ev) => switchMonth(ev, key);
+                nav.appendChild(btn);
+            });
+        }
+
+        function switchMonth(ev, monthKey) {
+            currentMonth = monthKey;
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+            ev.target.classList.add('active');
+            loadMonth(monthKey);
+        }
+
+        function getDaysInMonth(monthKey) {
+            const [year, month] = monthKey.split('-').map(Number);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const list = [];
+            const weekdays = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(Date.UTC(year, month - 1, d));
+                const iso = date.toISOString().slice(0, 10);
+                const weekday = weekdays[date.getUTCDay()];
+                list.push({ iso, weekday });
+            }
+            return list;
+        }
+
+        function loadMonth(monthKey) {
+            if (!db) return;
+            unsubscribeListeners.forEach(u => u());
+            unsubscribeListeners = [];
+            const days = getDaysInMonth(monthKey);
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            thead.innerHTML = '<tr><th>Data</th><th>Dzień</th><th>AW Software<br>Start</th><th>AW Software<br>Konieć</th><th>AW Software<br>Godz</th><th>Retro<br>Start</th><th>Retro<br>Konieć</th><th>Retro<br>Godz</th><th>Inwentury<br>Start</th><th>Inwentury<br>Konieć</th><th>Inwentury<br>Godz</th><th>Suma</th></tr>';
+            tbody.innerHTML = '';
+            days.forEach(day => {
+                const tr = document.createElement('tr');
+                tr.dataset.date = day.iso;
+                tr.innerHTML = `<td>${day.iso}</td><td>${day.weekday}</td>${renderWorkCells('w1')}${renderWorkCells('w2')}${renderWorkCells('w3')}<td class="hours" data-field="total"></td>`;
+                tbody.appendChild(tr);
+                setupRowListeners(tr, monthKey, day.iso);
+                loadRowData(tr, monthKey, day.iso);
+            });
+            updateSummary();
+        }
+
+        function renderWorkCells(prefix) {
+            return `<td><input class="time-input" data-field="${prefix}start"></td><td><input class="time-input" data-field="${prefix}end"></td><td class="hours" data-field="${prefix}hours"></td>`;
+        }
+
+        function parseTime(str) {
+            if (!str) return null;
+            const m = str.match(/^(\d{1,2})(?::(\d{2}))?$/);
+            if (!m) return null;
+            const h = parseInt(m[1], 10);
+            const min = parseInt(m[2] || '0', 10);
+            if (h > 23 || min > 59) return null;
+            return h * 60 + min;
+        }
+
+        function computeHours(startStr, endStr) {
+            const s = parseTime(startStr);
+            const e = parseTime(endStr);
+            if (s === null || e === null) return '';
+            let diff = e - s;
+            if (diff < 0) diff += 24 * 60;
+            return (diff / 60).toFixed(2);
+        }
+
+        function styleInputs(startInput, endInput, isUrlop, hasEnd) {
+            startInput.classList.remove('status-urlop', 'status-start', 'status-complete');
+            endInput.classList.remove('status-urlop', 'status-start', 'status-complete');
+            if (isUrlop) {
+                startInput.value = 'urlop';
+                endInput.value = 'urlop';
+                startInput.classList.add('status-urlop');
+                endInput.classList.add('status-urlop');
+            } else {
+                if (startInput.value && !hasEnd) startInput.classList.add('status-start');
+                else if (startInput.value && hasEnd) {
+                    startInput.classList.add('status-complete');
+                    endInput.classList.add('status-complete');
+                }
+            }
+        }
+
+        function setupRowListeners(tr, monthKey, dateIso) {
+            const inputs = tr.querySelectorAll('.time-input');
+            inputs.forEach(inp => inp.addEventListener('input', () => handleInputChange(tr, monthKey, dateIso)));
+        }
+
+        async function handleInputChange(tr, monthKey, dateIso) {
+            if (!db) return;
+            const docRef = db.collection('worktime').doc(monthKey + '-' + dateIso.replace(/-/g, ''));
+            const data = { month: monthKey, date: dateIso };
+            ['w1', 'w2', 'w3'].forEach(prefix => {
+                const startInput = tr.querySelector(`[data-field="${prefix}start"]`);
+                const endInput = tr.querySelector(`[data-field="${prefix}end"]`);
+                const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
+                let startVal = startInput.value.trim();
+                let endVal = endInput.value.trim();
+                if (startVal.toLowerCase() === 'u') startVal = 'urlop';
+                if (endVal.toLowerCase() === 'u') endVal = 'urlop';
+                const isUrlop = startVal.toLowerCase() === 'urlop' || endVal.toLowerCase() === 'urlop';
+                styleInputs(startInput, endInput, isUrlop, !!endVal && !isUrlop);
+                data[`${prefix}start`] = startVal;
+                data[`${prefix}end`] = endVal;
+                let hours = '';
+                if (!isUrlop && startVal && endVal) hours = computeHours(startVal, endVal);
+                hoursCell.textContent = hours;
+                data[`${prefix}hours`] = hours;
+            });
+            data.total = calcRowTotal(tr);
+            tr.querySelector('[data-field="total"]').textContent = data.total;
+            await docRef.set(data, { merge: true });
+            updateSummary();
+        }
+
+        function loadRowData(tr, monthKey, dateIso) {
+            if (!db) return;
+            if (!dateIso.startsWith(monthKey)) return;
+            const docId = monthKey + '-' + dateIso.replace(/-/g, '');
+            const docRef = db.collection('worktime').doc(docId);
+            const unsub = docRef.onSnapshot(snap => {
+                if (!snap.exists) return;
+                const data = snap.data();
+                ['w1', 'w2', 'w3'].forEach(prefix => {
+                    const startInput = tr.querySelector(`[data-field="${prefix}start"]`);
+                    const endInput = tr.querySelector(`[data-field="${prefix}end"]`);
+                    const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
+                    startInput.value = data[`${prefix}start`] || '';
+                    endInput.value = data[`${prefix}end`] || '';
+                    hoursCell.textContent = data[`${prefix}hours`] || '';
+                });
+                tr.querySelector('[data-field="total"]').textContent = data.total || '';
+                const isUrlop = (data.w1start || '').toLowerCase() === 'urlop' || (data.w1end || '').toLowerCase() === 'urlop';
+                const hasEnd = !!(data.w1end && !isUrlop);
+                styleInputs(tr.querySelector('[data-field="w1start"]'), tr.querySelector('[data-field="w1end"]'), isUrlop, hasEnd);
+            });
+            unsubscribeListeners.push(unsub);
+        }
+
+        function calcRowTotal(tr) {
+            let sum = 0;
+            let any = false;
+            ['w1', 'w2', 'w3'].forEach(prefix => {
+                const hoursCell = tr.querySelector(`[data-field="${prefix}hours"]`);
+                const v = parseFloat(hoursCell.textContent.replace(',', '.'));
+                if (!isNaN(v)) { sum += v; any = true; }
+            });
+            return any ? sum.toFixed(2) : '';
+        }
+
+        async function updateSummary() {
+            if (!db) return;
+            const summaryDiv = document.getElementById('summary');
+            let totalAll = 0;
+            let html = '';
+            for (const key of Object.keys(months)) {
+                const q = await db.collection('worktime').where('month', '==', key).get();
+                let mSum = 0;
+                q.forEach(doc => {
+                    const d = doc.data();
+                    if (d.total) {
+                        const v = parseFloat(d.total.replace(',', '.'));
+                        if (!isNaN(v)) mSum += v;
+                    }
+                });
+                html += `<div class="summary-row"><span>${months[key]}</span><span>${mSum.toFixed(2)} h</span></div>`;
+                totalAll += mSum;
+            }
+            html += `<div class="summary-total"><span>RAZEM 2026</span><span>${totalAll.toFixed(2)} h</span></div>`;
+            summaryDiv.innerHTML = html;
+        }
+
+        // ✅ PRZENIESIONA FUNKCJA CZYSZCZENIA - TYLKO PO POPRAWNYM HASLE
+        async function clearAllDataConfirmed() {
+            if (!confirm('⚠️ USUŃ WSZYSTKIE DANE 2026?\n\nUWAGA: Ta operacja jest nieodwracalna!')) return;
+            try {
+                let snap = await db.collection('worktime').get();
+                if (snap.size === 0) return alert('Brak danych do usunięcia!');
+                let batch = db.batch();
+                snap.docs.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+                alert(`🗑️ USUNIĘTO ${snap.size} rekordów!`);
+                loadMonth(currentMonth);
+            } catch(e) {
+                alert('BŁĄD: ' + e.message);
+            }
+        }
+
+        function exportCSV() {
+            const rows = [['Data', 'Dzień', 'AW Start', 'AW Koniec', 'AW Godz', 'Retro Start', 'Retro Koniec', 'Retro Godz', 'Inw Start', 'Inw Koniec', 'Inw Godz', 'Suma']];
+            const table = document.getElementById('workTable');
+            const tbodyRows = table.querySelectorAll('tbody tr');
+            tbodyRows.forEach(tr => {
+                const cells = [];
+                tr.querySelectorAll('td').forEach((cell, idx) => {
+                    if (idx === 0 || idx === 1 || (idx % 3 !== 2)) {
+                        cells.push(cell.textContent || cell.querySelector('input')?.value || '');
+                    }
+                });
+                rows.push(cells);
+            });
+            const csv = rows.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Ewidencja_${currentMonth}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
